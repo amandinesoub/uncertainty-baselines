@@ -27,10 +27,13 @@ import tensorflow_datasets as tfds
 import torch
 
 import torch_utils  # local file import
+import sys
+sys.path.append("/home/amand/uncertainty-baselines/")
 import uncertainty_baselines as ub
 import utils  # local file import
 from tensorboard.plugins.hparams import api as hp
 
+#sys.exit(0)
 # Hide any GPUs form TensorFlow. Otherwise TF might reserve memory and make
 # PyTorch crash with CUDA OoM error.
 tf.config.experimental.set_visible_devices([], 'GPU')
@@ -116,11 +119,11 @@ def main(argv):
   data_dir = FLAGS.data_dir
 
   dataset_train_builder = ub.datasets.get(
-      'diabetic_retinopathy_detection', split='train', data_dir=data_dir)
+      'ub_diabetic_retinopathy_detection', split='train', data_dir=data_dir)
   dataset_train = dataset_train_builder.load(batch_size=train_batch_size)
 
   dataset_validation_builder = ub.datasets.get(
-      'diabetic_retinopathy_detection',
+      'ub_diabetic_retinopathy_detection',
       split='validation',
       data_dir=data_dir,
       is_training=not FLAGS.use_validation)
@@ -131,10 +134,11 @@ def main(argv):
   if not FLAGS.use_validation:
     # Note that this will not create any mixed batches of train and validation
     # images.
-    dataset_train = dataset_train.concatenate(dataset_validation)
+    dataset_train = dataset_train.concatenate(dataset_validation)     # will consider train and validation dataset as a whole
 
+  # Build test dataset : 
   dataset_test_builder = ub.datasets.get(
-      'diabetic_retinopathy_detection', split='test', data_dir=data_dir)
+      'ub_diabetic_retinopathy_detection', split='test', data_dir=data_dir)
   dataset_test = dataset_test_builder.load(batch_size=eval_batch_size)
 
   summary_writer = tf.summary.create_file_writer(
@@ -163,13 +167,15 @@ def main(argv):
   metrics = utils.get_diabetic_retinopathy_base_metrics(
       use_tpu=False,
       num_bins=FLAGS.num_bins,
+      available_splits=['validation', 'test'],
       use_validation=FLAGS.use_validation)
 
   # Define additional metrics that would fail in a TF TPU implementation.
   metrics.update(
       utils.get_diabetic_retinopathy_cpu_metrics(
+          available_splits=['validation', 'test'] , 
           use_validation=FLAGS.use_validation))
-
+  
   # Initialize loss function based on class reweighting setting
   loss_fn = torch.nn.BCELoss()
   sigmoid = torch.nn.Sigmoid()
@@ -289,12 +295,14 @@ def main(argv):
       labels = labels.numpy()
       probs = probs.numpy()
 
-      metrics[dataset_split +
-              '/negative_log_likelihood'].update_state(negative_log_likelihood)
-      metrics[dataset_split + '/accuracy'].update_state(labels, probs)
-      metrics[dataset_split + '/auprc'].update_state(labels, probs)
-      metrics[dataset_split + '/auroc'].update_state(labels, probs)
-      metrics[dataset_split + '/ece'].add_batch(probs, label=labels)
+      try : 
+        metrics[dataset_split +'/negative_log_likelihood'].update_state(negative_log_likelihood)
+        metrics[dataset_split + '/accuracy'].update_state(labels, probs)
+        metrics[dataset_split + '/auprc'].update_state(labels, probs)
+        metrics[dataset_split + '/auroc'].update_state(labels, probs)
+        metrics[dataset_split + '/ece'].add_batch(probs, label=labels)
+      except Exception as e: 
+        raise ValueError(e)
 
     for _ in range(num_steps):
       eval_step(next(iterator), model=model)
