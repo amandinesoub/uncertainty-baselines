@@ -118,36 +118,44 @@ def main(argv):
 
   data_dir = FLAGS.data_dir
 
+  # ----- Building datasets
+
+  logging.info('Building train dataset')
   dataset_train_builder = ub.datasets.get(
-      'ub_diabetic_retinopathy_detection', split='train', data_dir=data_dir)
+      'ub_diabetic_retinopathy_detection', 
+      split='train',
+      data_dir=data_dir)
   dataset_train = dataset_train_builder.load(batch_size=train_batch_size)
 
+  logging.info('Building validation dataset')
   dataset_validation_builder = ub.datasets.get(
       'ub_diabetic_retinopathy_detection',
       split='validation',
       data_dir=data_dir,
       is_training=not FLAGS.use_validation)
-  validation_batch_size = (
-      eval_batch_size if FLAGS.use_validation else train_batch_size)
-  dataset_validation = dataset_validation_builder.load(
-      batch_size=validation_batch_size)
+  validation_batch_size = (eval_batch_size if FLAGS.use_validation else train_batch_size)
+  dataset_validation = dataset_validation_builder.load(batch_size=validation_batch_size)
   if not FLAGS.use_validation:
-    # Note that this will not create any mixed batches of train and validation
-    # images.
+    logging.info('Concat train and validation dataset - note that this will not create any mixed batches of train and validation images')
     dataset_train = dataset_train.concatenate(dataset_validation)     # will consider train and validation dataset as a whole
 
-  # Build test dataset : 
+  logging.info('Building test dataset')
   dataset_test_builder = ub.datasets.get(
       'ub_diabetic_retinopathy_detection', split='test', data_dir=data_dir)
   dataset_test = dataset_test_builder.load(batch_size=eval_batch_size)
 
+  # ----- Create file writer
+  
   summary_writer = tf.summary.create_file_writer(
       os.path.join(FLAGS.output_dir, 'summaries'))
+
+  # ----- Building model 
 
   # MC Dropout ResNet50 based on PyTorch Vision implementation
   logging.info('Building Torch ResNet-50 MC Dropout model.')
   model = ub.models.resnet50_dropout_torch(
-      num_classes=1, dropout_rate=FLAGS.dropout_rate)
+      num_classes=1, 
+      dropout_rate=FLAGS.dropout_rate)
   logging.info('Model number of weights: %s',
                torch_utils.count_parameters(model))
 
