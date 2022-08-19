@@ -172,7 +172,8 @@ def main(argv):
 
   model = model.to(device)
 
-  # ----- Metrics 
+  # ----- Metrics
+   
   splits_toconsider = ['test']  
   if FLAGS.use_validation :     # if there is validation, then add it to metrics 
     splits_toconsider.append('validation')
