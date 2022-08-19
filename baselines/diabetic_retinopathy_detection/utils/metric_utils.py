@@ -201,8 +201,6 @@ def log_epoch_metrics(metrics, use_tpu, dataset_splits):
   """
   metrics_to_return = {}
 
-  eval_results = {k:v for k,v in metrics.items() if 'train' not in k}
-
   if 'train' in dataset_splits:
     train_columns = ['Train Loss (NLL+L2)', 'Accuracy', 'AUPRC', 'AUROC']
     train_metrics = ['loss', 'accuracy', 'auprc', 'auroc']
@@ -228,38 +226,34 @@ def log_epoch_metrics(metrics, use_tpu, dataset_splits):
       metrics_to_return[f'train/{train_metric}'] = train_value
 
   # Standard evaluation, robustness, and uncertainty quantification metrics
-  eval_columns = [
-      'Eval Dataset', 'NLL', 'Accuracy', 'AUPRC', 'AUROC', 'ECE', 'OOD AUROC',
-      'OOD AUPRC', 'R-Accuracy AUC', 'R-NLL AUC', 'R-AUROC AUC', 'R-AUPRC AUC',
-      'Balanced R-Accuracy AUC', 'Balanced R-NLL AUC', 'Balanced R-AUROC AUC',
-      'Balanced R-AUPRC AUC'
-  ]
-  eval_metrics = [
-      'negative_log_likelihood', 'accuracy', 'auprc', 'auroc', 'ece',
-      'ood_detection_auroc', 'ood_detection_auprc', 'retention_accuracy_auc',
-      'retention_nll_auc', 'retention_auroc_auc', 'retention_auprc_auc',
-      'balanced_retention_accuracy_auc', 'balanced_retention_nll_auc',
-      'balanced_retention_auroc_auc', 'balanced_retention_auprc_auc'
-  ]
+  dict_metrics = {
+    'NLL': 'negative_log_likelihood',
+    'Accuracy': 'accuracy',
+    'AUPRC': 'auprc',
+    'AUROC': 'auroc',
+    'ECE': 'ece',
+    'OOD AUROC': 'ood_detection_auroc',
+    'OOD AUPRC': 'ood_detection_auprc',
+    'R-Accuracy AUC': 'retention_accuracy_auc',
+    'R-NLL AUC': 'retention_nll_auc',
+    'R-AUROC AUC': 'retention_auroc_auc',
+    'R-AUPRC AUC': 'retention_auprc_auc',
+    'Balanced R-Accuracy AUC': 'balanced_retention_accuracy_auc',
+    'Balanced R-NLL AUC': 'balanced_retention_nll_auc',
+    'Balanced R-AUROC AUC': 'balanced_retention_auroc_auc',
+    'Balanced R-AUPRC AUC': 'balanced_retention_auprc_auc'}
 
-  eval_values = list()
-  for dataset_key, results_dict in eval_results.items():
-    dataset_values = list()
-    dataset_values.append(dataset_key)
-
-    # Add all the relevant metrics from the per-dataset split results dict
-    for eval_metric in eval_metrics:
+  for dataset_key in metrics.keys():
+    dataset_key = dataset_key.split('/')[0]
+    for eval_metric in dict_metrics.values():
       dataset_key_and_metric = f'{dataset_key}/{eval_metric}'
-      eval_value = results_dict[dataset_key_and_metric]
-      dataset_values.append(eval_value)
+      eval_value = metrics.get(dataset_key_and_metric, None)
+      if eval_value is not None : 
+        metrics_to_return[dataset_key_and_metric] = eval_value
 
-      # Add to the metrics dict which we will return (for TensorBoard logging)
-      metrics_to_return[dataset_key_and_metric] = eval_value
-
-    eval_values.append(dataset_values)
-
-  eval_table = tabulate(
-      eval_values, eval_columns, tablefmt='simple', floatfmt='8.4f')
+  data = [(v,k) for k,v in metrics_to_return.items()]
+  data = list(map(lambda i:(i[0], i[1].split('/')[0], [k for k,v in dict_metrics.items() if v==i[1].split('/')[1]][0]), data))
+  eval_table = tabulate(data, headers=['result', 'dataset', 'metric'])
   print('\n')
   print(eval_table)
   return metrics_to_return
