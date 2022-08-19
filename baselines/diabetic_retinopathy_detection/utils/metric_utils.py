@@ -186,14 +186,12 @@ def log_vit_validation_metrics(eval_results):
   return metrics_to_return
 
 
-def log_epoch_metrics(metrics, eval_results, use_tpu, dataset_splits):
+def log_epoch_metrics(metrics, use_tpu, dataset_splits):
   """Logs train, validation, and test epoch metrics.
 
   Args:
     metrics: Dict, contains train scalar metric results with key formatted as
       {split}/{metric}.
-    eval_results: Dict, contains eval scalar metric results with key formatted
-      as {split}/{metric}.
     use_tpu: bool, if True, using the TPU, which means that ECE cannot be
       collected at train time (current bug).
     dataset_splits: List[str], available dataset splits.
@@ -202,6 +200,8 @@ def log_epoch_metrics(metrics, eval_results, use_tpu, dataset_splits):
     Dict, metrics for TensorBoard logging.
   """
   metrics_to_return = {}
+
+  eval_results = {k:v for k,v in metrics.items() if 'train' not in k}
 
   if 'train' in dataset_splits:
     train_columns = ['Train Loss (NLL+L2)', 'Accuracy', 'AUPRC', 'AUROC']

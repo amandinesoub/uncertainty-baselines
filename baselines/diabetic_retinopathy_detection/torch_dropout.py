@@ -177,6 +177,7 @@ def main(argv):
   splits_toconsider = ['test']  
   if FLAGS.use_validation :     # if there is validation, then add it to metrics 
     splits_toconsider.append('validation')
+  logging.info(f'Splits considered : {splits_toconsider}')
 
   metrics = utils.get_diabetic_retinopathy_base_metrics(
       use_tpu=False,
@@ -348,7 +349,7 @@ def main(argv):
     scheduler.step()
 
     # Log and write to summary the epoch metrics
-    utils.log_epoch_metrics(metrics=metrics, use_tpu=False)
+    utils.log_epoch_metrics(metrics=metrics, eval_results=eval_metrics, use_tpu=False, dataset_splits=splits_toconsider)
     total_results = {name: metric.result() for name, metric in metrics.items()}
     # Metrics from Robustness Metrics (like ECE) will return a dict with a
     # single key/value, instead of a scalar.
