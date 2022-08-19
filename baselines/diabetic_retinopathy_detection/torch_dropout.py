@@ -97,10 +97,10 @@ def main(argv):
 
   # Resolve CUDA device(s)
   if FLAGS.use_gpu and torch.cuda.is_available():
-    print('Running model with CUDA.')
+    logging.info('Running model with CUDA.')
     device = 'cuda:0'
   else:
-    print('Running model on CPU.')
+    logging.info('Running model on CPU.')
     device = 'cpu'
 
   train_batch_size = FLAGS.train_batch_size
@@ -145,7 +145,7 @@ def main(argv):
   dataset_test = dataset_test_builder.load(batch_size=eval_batch_size)
 
   # ----- Create file writer
-  
+
   summary_writer = tf.summary.create_file_writer(
       os.path.join(FLAGS.output_dir, 'summaries'))
 
@@ -172,16 +172,21 @@ def main(argv):
 
   model = model.to(device)
 
+  # ----- Metrics 
+  splits_toconsider = ['test']  
+  if FLAGS.use_validation :     # if there is validation, then add it to metrics 
+    splits_toconsider.append('validation')
+
   metrics = utils.get_diabetic_retinopathy_base_metrics(
       use_tpu=False,
       num_bins=FLAGS.num_bins,
-      available_splits=['validation', 'test'],
+      available_splits=splits_toconsider,
       use_validation=FLAGS.use_validation)
 
   # Define additional metrics that would fail in a TF TPU implementation.
   metrics.update(
       utils.get_diabetic_retinopathy_cpu_metrics(
-          available_splits=['validation', 'test'] , 
+          available_splits=splits_toconsider , 
           use_validation=FLAGS.use_validation))
   
   # Initialize loss function based on class reweighting setting
