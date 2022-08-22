@@ -251,7 +251,8 @@ def log_epoch_metrics(metrics, use_tpu, dataset_splits):
       if eval_value is not None : 
         metrics_to_return[dataset_key_and_metric] = eval_value
 
-  data = [(v,k) for k,v in metrics_to_return.items()]
+  data = {name: metric.result() for name, metric in metrics_to_return.items()}
+  data = [(v,k) for k,v in data.items()]
   data = list(map(lambda i:(i[0], i[1].split('/')[0], [k for k,v in dict_metrics.items() if v==i[1].split('/')[1]][0]), data))
   eval_table = tabulate(data, headers=['result', 'dataset', 'metric'])
   print('\n')

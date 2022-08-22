@@ -349,14 +349,22 @@ def main(argv):
     scheduler.step()
 
     # Log and write to summary the epoch metrics
+    print(metrics)
+    x=1
+    if x==1 : 
+      print(f'HERE THE ERROR TO FIX')
     utils.log_epoch_metrics(metrics=metrics, use_tpu=False, dataset_splits=splits_toconsider)
     total_results = {name: metric.result() for name, metric in metrics.items()}
     # Metrics from Robustness Metrics (like ECE) will return a dict with a
     # single key/value, instead of a scalar.
+    print('HERE RESULTS')
+    print(total_results)
     total_results = {
         k: (list(v.values())[0] if isinstance(v, dict) else v)
         for k, v in total_results.items()
     }
+    print('HERE RESULT 2')
+    print(total_results)
     with summary_writer.as_default():
       for name, result in total_results.items():
         tf.summary.scalar(name, result, step=epoch + 1)
