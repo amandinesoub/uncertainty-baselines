@@ -25,6 +25,7 @@ import numpy as np
 import tensorflow as tf
 import tensorflow_datasets as tfds
 import torch
+from datetime import datetime
 
 import torch_utils  # local file import
 import sys
@@ -87,6 +88,7 @@ FLAGS = flags.FLAGS
 
 def main(argv):
   del argv  # unused arg
+  time1 = datetime.now()
   tf.io.gfile.makedirs(FLAGS.output_dir)
   logging.info('Saving checkpoints at %s', FLAGS.output_dir)
 
@@ -392,13 +394,17 @@ def main(argv):
       checkpoint_path=final_checkpoint_path)
   logging.info('Saved last checkpoint to %s', final_checkpoint_path)
 
+  time2 = datetime.now()
+  minutes_diff = (time2 - time1).total_seconds() / 60.0
   with summary_writer.as_default():
     hp.hparams({
         'base_learning_rate': FLAGS.base_learning_rate,
         'one_minus_momentum': FLAGS.one_minus_momentum,
         'dropout_rate': FLAGS.dropout_rate,
         'l2': FLAGS.l2,
-        'lr_warmup_epochs': FLAGS.lr_warmup_epochs
+        'lr_warmup_epochs': FLAGS.lr_warmup_epochs, 
+        'train_epochs' : FLAGS.train_epochs,
+        'run_minutes_timer' : minutes_diff
     })
 
 
